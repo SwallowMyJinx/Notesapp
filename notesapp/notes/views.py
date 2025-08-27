@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from .models import Note
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 
 @login_required
 def note_list(request):
@@ -35,3 +36,13 @@ def edit_note(request, pk):
         return redirect("note_list")
 
     return render(request, "notes/edit_note.html", {"note": note})
+
+
+@login_required
+def delete_note(request, pk):
+    note = get_object_or_404(Note, pk=pk, user=request.user)
+    if request.method == "POST":
+        note.delete()
+        return redirect("note_list")
+    
+    return render(request, "notes/confirm_delete.html", {"note": note})

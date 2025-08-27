@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Notiz löschen{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-gray-800 p-6 rounded-xl shadow">
+  <h2 class="text-lg font-bold mb-4">Wirklich löschen?</h2>
+  <p class="mb-6"><span class="font-semibold">Titel:</span> {{ note.title }}</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex gap-2">
+      <a href="{% url 'note_list' %}" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500">Abbrechen</a>
+      <button class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white">Ja, löschen</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
