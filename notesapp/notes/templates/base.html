@@ -1,17 +1,118 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" x-data>
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Notes{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <title>{% block title %}Notes{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>[x-cloak]{display:none!important}</style>
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('palette', {
+        openDrawer: false,
+        noteId: null,
+        open(id) { this.noteId = id; this.openDrawer = true; },
+        close() { this.openDrawer = false; this.noteId = null; }
+      });
+    });
+  </script>
 </head>
 <body class="bg-gray-900 text-white">
-    <nav class="p-4 bg-gray-800 flex justify-between">
-        <h1 class="text-xl font-bold">📝 NotesApp</h1>
-        <a href="{% url 'add_note' %}" class="bg-blue-500 px-4 py-2 rounded">Neue Notiz</a>
-    </nav>
-    <main class="p-6">
-        {% block content %}{% endblock %}
-    </main>
+  <!-- Navbar -->
+  <nav class="p-4 bg-gray-800 flex justify-between items-center border-b border-white/10">
+    <h1 class="text-xl font-bold">📝 NotesApp</h1>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'add_note' %}" class="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600 transition">Neue Notiz</a>
+      <!-- Optional: Palette ohne ausgewählte Note (zeigt Hinweis im Drawer) -->
+      <button type="button"
+              class="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 transition"
+              @click="$store.palette.open(null)">🎨</button>
+    </div>
+  </nav>
+
+  <!-- Hauptbereich -->
+  <main class="p-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Rechter Drawer -->
+  <div class="fixed inset-0 z-50" x-cloak
+       x-show="$store.palette.openDrawer"
+       @keydown.escape="$store.palette.close()"
+       role="dialog" aria-modal="true" aria-label="Farbpalette und Labels">
+    <!-- Overlay -->
+    <div class="absolute inset-0 bg-black/50" @click="$store.palette.close()" aria-hidden="true"></div>
+
+    <!-- Panel -->
+    <div class="absolute right-0 top-0 h-full w-80 bg-gray-800 border-l border-white/10 p-4 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold">Reiter: Farben & Labels</h3>
+        <button class="px-2 py-1 rounded hover:bg-white/10" @click="$store.palette.close()">✖</button>
+      </div>
+
+      <!-- Abschnitt: Farbe für ausgewählte Notiz -->
+      <section class="mb-6">
+        <h4 class="text-sm font-semibold mb-2">Farbe für ausgewählte Notiz</h4>
+
+        <template x-if="$store.palette.noteId === null">
+          <p class="text-sm text-gray-400">Wähle zuerst eine Notiz (🎨-Button auf der Karte).</p>
+        </template>
+
+        <template x-if="$store.palette.noteId !== null">
+          <form method="post" action="{% url 'update_color' %}" class="space-y-3">
+            {% csrf_token %}
+            <input type="hidden" name="note_id" :value="$store.palette.noteId">
+            <div class="grid grid-cols-4 gap-3">
+              {% for c, bg in colors %}
+                <button name="color" value="{{ c }}" type="submit"
+                        class="h-10 rounded-lg {{ bg }} ring-2 ring-transparent hover:ring-white transition"
+                        title="{{ c|capfirst }}"></button>
+              {% endfor %}
+            </div>
+            <p class="text-xs text-gray-400">Tipp: Klick auf eine Farbe speichert sofort.</p>
+          </form>
+        </template>
+      </section>
+
+      <hr class="border-white/10 my-4">
+
+      <!-- Abschnitt: Bedeutung der Farben (Labels) -->
+      <section>
+        <h4 class="text-sm font-semibold mb-2">Bedeutung der Farben</h4>
+        <form method="post" action="{% url 'update_color_labels' %}" class="space-y-3">
+          {% csrf_token %}
+          <div class="space-y-2 max-h-64 overflow-auto pr-1">
+            {% if labels %}
+              {# labels: [(color, bg, label_text), ...] #}
+              {% for c, bg, label in labels %}
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-5 h-5 rounded {{ bg }} ring-1 ring-white/20"></span>
+                  <label class="text-sm w-20 capitalize" for="label_{{ c }}">{{ c }}</label>
+                  <input id="label_{{ c }}" type="text" name="label_{{ c }}" value="{{ label }}"
+                         class="flex-1 px-2 py-1 rounded bg-gray-700 border border-white/10"
+                         placeholder="z. B. Arbeit, Freizeit, Freundin …">
+                </div>
+              {% endfor %}
+            {% else %}
+              {# Fallback: falls labels nicht im Kontext ist, leere Inputs zu colors rendern #}
+              {% for c, bg in colors %}
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-5 h-5 rounded {{ bg }} ring-1 ring-white/20"></span>
+                  <label class="text-sm w-20 capitalize" for="label_{{ c }}">{{ c }}</label>
+                  <input id="label_{{ c }}" type="text" name="label_{{ c }}" value=""
+                         class="flex-1 px-2 py-1 rounded bg-gray-700 border border-white/10"
+                         placeholder="z. B. Arbeit, Freizeit, Freundin …">
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <button class="w-full mt-2 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 transition">
+            Labels speichern
+          </button>
+          <p class="text-xs text-gray-400 mt-1">Beispiel: blau = Freizeit, grün = Freundin, rot = Arbeit</p>
+        </form>
+      </section>
+    </div>
+  </div>
 </body>
 </html>
