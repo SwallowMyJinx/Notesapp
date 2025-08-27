@@ -1,0 +1,126 @@
+{# templates/search_results.html #}
+{% extends "base.html" %}
+{% block title %}Suche – {{ q }}{% endblock %}
+
+{% block content %}
+  <!-- Kopf -->
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h2 class="text-lg sm:text-xl font-semibold">
+      {% with notes|length as count %}
+        {% if q %}
+          Suche nach „{{ q }}“ — {{ count }} Ergebnis{% if count != 1 %}se{% endif %}
+        {% else %}
+          Suche — {{ count }} Ergebnis{% if count != 1 %}se{% endif %}
+        {% endif %}
+      {% endwith %}
+    </h2>
+
+    <div class="flex items-center gap-2">
+      <a href="{% url 'note_list' %}"
+         class="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10
+                hover:bg-black/5 dark:hover:bg-white/10 transition">
+        Zurück zur Übersicht
+      </a>
+    </div>
+  </div>
+
+  {# Optional: Farb-/Label-Chips, falls vom View geliefert #}
+  {% if labels %}
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <a href="{% url 'note_list' %}"
+         class="px-3 py-1.5 rounded border border-white/10 bg-white/10">
+         Alle
+      </a>
+      {% for c, bg, label in labels %}
+        <a href="{% url 'note_list' %}?color={{ c }}"
+           class="px-3 py-1.5 rounded border border-white/10 flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded {{ bg }}"></span>
+          <span class="text-sm">{{ label|default:c|capfirst }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if notes %}
+    <!-- Grid wie in notelist -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for n in notes %}
+        <div class="
+          p-4 rounded-xl shadow text-black flex flex-col justify-between
+          {% if n.color == 'yellow' %}bg-yellow-400{% elif n.color == 'green' %}bg-green-400
+          {% elif n.color == 'blue' %}bg-blue-400{% elif n.color == 'purple' %}bg-purple-400
+          {% elif n.color == 'pink' %}bg-pink-400{% elif n.color == 'gray' %}bg-gray-400
+          {% elif n.color == 'red' %}bg-red-400{% elif n.color == 'orange' %}bg-orange-400
+          {% else %}bg-yellow-400{% endif %}
+        ">
+          <div>
+            <a href="{{ n.get_absolute_url|default:'#' }}" class="group">
+              <h3 class="font-bold text-lg leading-snug group-hover:underline">
+                {{ n.title|default:"(ohne Titel)" }}
+              </h3>
+            </a>
+
+            {% if n.content %}
+              <p class="mt-2 leading-relaxed">
+                {{ n.content|truncatechars:220 }}
+              </p>
+            {% endif %}
+
+            {% if n.deadline %}
+              <p class="mt-2 font-semibold text-red-700">
+                🗓️ Deadline: {{ n.deadline|date:"d.m.Y" }}
+              </p>
+            {% endif %}
+
+            <small class="block mt-2 text-xs opacity-80">
+              Geändert: {{ n.updated_at|date:"d.m.Y H:i" }}
+            </small>
+          </div>
+
+          
+
+            <a href="{% url 'edit_note' n.id %}"
+               class="px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+              ✏️ Bearbeiten
+            </a>
+
+            
+
+            {% if n.label_text %}
+              <span class="ml-auto px-2 py-1 rounded-full bg-black/20 text-xs font-medium">
+                {{ n.label_text }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <!-- Empty State -->
+    <div class="rounded-xl border border-black/10 dark:border-white/10 p-8 text-center">
+      <div class="text-2xl mb-2">🤷‍♂️</div>
+      <p class="text-gray-700 dark:text-gray-300">
+        Keine Treffer{% if q %} für „{{ q }}“{% endif %}.
+      </p>
+      <div class="mt-4 flex flex-wrap gap-2 justify-center">
+        <a href="{% url 'note_list' %}"
+           class="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10
+                  hover:bg-black/5 dark:hover:bg-white/10 transition">
+          Alle Notizen anzeigen
+        </a>
+        {% if q %}
+          <a href="{% url 'search' %}"
+             class="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10
+                    hover:bg-black/5 dark:hover:bg-white/10 transition">
+            Neue Suche
+          </a>
+        {% endif %}
+      </div>
+      <ul class="mt-4 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+        <li>• Anderes Stichwort probieren</li>
+        <li>• Kürzeres Suchwort (mind. 2–3 Zeichen)</li>
+        <li>• Schreibweise prüfen</li>
+      </ul>
+    </div>
+  {% endif %}
+{% endblock %}

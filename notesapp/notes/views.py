@@ -3,6 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import HttpResponseBadRequest
 from .models import Note, ColorLabel
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.urls import reverse
+from .models import Note 
 
 # Zentrale Farbdefinition
 ALLOWED_COLORS = [
@@ -45,6 +50,9 @@ def note_list(request):
     labels_map = _get_color_labels_map(request.user)
     # Liste für Templates: (color, tailwind_bg_class, label_text)
     labels = [(c, bg, labels_map.get(c, "")) for c, bg in ALLOWED_COLORS]
+
+    for n in notes:
+        n.label_text = labels_map.get(n.color, "").strip()
 
     context = {
         "notes": notes,
@@ -143,3 +151,38 @@ def update_color_labels(request):
         obj.save()
 
     return redirect("note_list")
+
+
+def search(request):
+    q = (request.GET.get("q") or "").strip()
+    notes = Note.objects.none()
+    if q:
+        notes = Note.objects.filter(
+            Q(title__icontains=q) | Q(content__icontains=q)
+        ).order_by("-updated_at")
+    return render(request, "./notes/search_results.html", {"q": q, "notes": notes})
+
+def search_suggest(request):
+    q = (request.GET.get("q") or "").strip()
+    out = []
+    if q:
+        qs = (Note.objects
+              .filter(Q(title__icontains=q) | Q(content__icontains=q))
+              .order_by("-updated_at")[:8])
+        for n in qs:
+            # Ziel-URL für Klick auf Vorschlag:
+            if hasattr(n, "get_absolute_url"):
+                url = n.get_absolute_url()
+            else:
+                # Fallback: öffnet Suchseite mit dem aktuellen Query
+                url = reverse("search") + f"?q={q}"
+            snippet = (n.content or "").replace("\n", " ")
+            if len(snippet) > 90:
+                snippet = snippet[:90].rstrip() + "…"
+            out.append({
+                "id": n.pk,
+                "title": n.title or "(ohne Titel)",
+                "url": url,
+                "snippet": snippet,
+            })
+    return JsonResponse({"results": out})

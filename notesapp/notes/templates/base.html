@@ -15,28 +15,25 @@
   <title>{% block title %}Notes{% endblock %}</title>
   <meta name="color-scheme" content="light dark" />
 
-  <!-- (Optional) Verhindert FOUC: setzt .dark so früh wie möglich -->
+  <!-- (Optional) Verhindert FOUC: setzt .dark früh -->
   <script>
     (function () {
-      const saved = localStorage.getItem('theme'); // 'dark' | 'light' | null
+      const saved = localStorage.getItem('theme');
       const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (dark) document.documentElement.classList.add('dark');
     })();
   </script>
 
-  <!-- Tailwind CDN zuerst laden -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Dann konfigurieren -->
+  <!-- Tailwind Konfig -->
   <script>
-    tailwind.config = {
-      darkMode: 'class'
-    };
+    tailwind.config = { darkMode: 'class' };
   </script>
 
   <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <!-- x-cloak Hilfsklasse -->
   <style>[x-cloak]{display:none!important}</style>
 
   <!-- Alpine Store -->
@@ -49,14 +46,114 @@
         close() { this.openDrawer = false; this.noteId = null; }
       });
     });
+
+    // Autocomplete-Logik
+    function noteSearch() {
+      return {
+        q: new URLSearchParams(window.location.search).get('q') || '',
+        results: [],
+        open: false,
+        activeIndex: -1,
+        listId: 'search-list-' + Math.random().toString(36).slice(2),
+        suggest() {
+          const term = this.q.trim();
+          if (!term) { this.results = []; this.open = false; return; }
+          fetch(`{% url 'search_suggest' %}?q=` + encodeURIComponent(term))
+            .then(r => r.json())
+            .then(({ results }) => {
+              this.results = results || [];
+              this.open = this.results.length > 0;
+              this.activeIndex = -1;
+            })
+            .catch(() => { this.results = []; this.open = false; });
+        },
+        next() {
+          if (!this.open || !this.results.length) return;
+          this.activeIndex = (this.activeIndex + 1) % this.results.length;
+          this.scrollActiveIntoView();
+        },
+        prev() {
+          if (!this.open || !this.results.length) return;
+          this.activeIndex = (this.activeIndex - 1 + this.results.length) % this.results.length;
+          this.scrollActiveIntoView();
+        },
+        choose(i) {
+          const r = this.results[i];
+          if (!r) return;
+          window.location = r.url;
+          this.close();
+        },
+        go() {
+          if (this.activeIndex >= 0 && this.results[this.activeIndex]) {
+            window.location = this.results[this.activeIndex].url;
+          } else {
+            window.location = `{% url 'search' %}?q=` + encodeURIComponent(this.q.trim());
+          }
+          this.close();
+        },
+        close() { this.open = false; this.activeIndex = -1; },
+        hover(i) { this.activeIndex = i; },
+        scrollActiveIntoView() {
+          queueMicrotask(() => {
+            const el = document.querySelector(`#${this.listId} [data-idx='${this.activeIndex}']`);
+            if (el) el.scrollIntoView({ block: 'nearest' });
+          });
+        },
+      }
+    }
   </script>
 </head>
 
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white">
   <!-- Navbar -->
   <nav class="p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur border-b border-black/10 dark:border-white/10
-              flex justify-between items-center">
+              flex flex-wrap gap-3 items-center justify-between">
     <h1 class="text-xl font-bold">📝 NotesApp</h1>
+
+    <!-- Suche mit Autocomplete -->
+    <div class="flex-1 max-w-xl w-full relative" x-data="noteSearch()" @keydown.escape="close()" @click.outside="close()">
+      <label for="q" class="sr-only">Suche</label>
+      <div class="relative">
+        <input id="q" name="q" type="search" x-model="q"
+               @input.debounce.200ms="suggest"
+               @keydown.arrow-down.prevent="next()"
+               @keydown.arrow-up.prevent="prev()"
+               @keydown.enter.prevent="go()"
+               role="combobox"
+               :aria-expanded="open ? 'true' : 'false'"
+               :aria-controls="listId"
+               placeholder="Notizen durchsuchen…"
+               class="w-full px-4 py-2 rounded-lg border border-black/10 dark:border-white/10
+                      bg-white/80 dark:bg-gray-800/80 backdrop-blur
+                      focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">Enter</kbd>
+      </div>
+
+      <!-- Dropdown -->
+      <ul x-show="open && results.length" x-cloak
+          :id="listId"
+          class="absolute z-50 mt-2 w-full max-h-72 overflow-auto
+                 rounded-lg border border-black/10 dark:border-white/10
+                 bg-white dark:bg-gray-800 shadow-lg">
+        <template x-for="(r, i) in results" :key="r.id">
+          <li :data-idx="i"
+              :class="i === activeIndex ? 'bg-black/5 dark:bg-white/10' : ''"
+              class="cursor-pointer"
+              role="option"
+              @mousemove="hover(i)"
+              @mousedown.prevent="choose(i)">
+            <div class="px-3 py-2">
+              <div class="font-medium truncate" x-text="r.title"></div>
+              <div class="text-xs text-gray-600 dark:text-gray-400 truncate" x-text="r.snippet"></div>
+            </div>
+          </li>
+        </template>
+        <li class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 border-t border-black/10 dark:border-white/10">
+          ↑/↓ wählen • Enter öffnen • Esc schließen
+        </li>
+      </ul>
+    </div>
+
     <div class="flex items-center gap-2">
       <!-- Theme Toggle -->
       <button
