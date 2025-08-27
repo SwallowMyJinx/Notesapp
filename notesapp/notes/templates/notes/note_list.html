@@ -1,29 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Meine Notizen{% endblock %}
 {% block content %}
-<div class="grid grid-cols-3 gap-4">
-    {% for note in notes %}
-        <div class="p-4 rounded-xl shadow bg-yellow-400 text-black">
-            <h2 class="font-bold text-lg">{{ note.title }}</h2>
-            <p class="mt-2">{{ note.content }}</p>
 
-            {% if note.deadline %}
-                <p class="mt-2 font-semibold text-red-700">
-                    Deadline: {{ note.deadline|date:"d.m.Y" }}
-                </p>
-            {% endif %}
+<!-- Toolbar -->
+<div class="mb-6 flex flex-wrap items-center gap-3">
+  <form hx-get="{% url 'note_list' %}" hx-target="#notes-grid" hx-push-url="true" class="flex-1 min-w-[280px]">
+    <input type="text" name="q" value="{{ q }}"
+           placeholder="🔎 Suchen (Titel/Content)"
+           class="w-full px-4 py-2 rounded-xl bg-gray-900 border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-600">
+  </form>
+  <a href="{% url 'add_note' %}" class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 shadow hover:opacity-90">+ Neue Notiz</a>
+</div>
 
-            <small class="block mt-2 text-xs">
-                Geändert: {{ note.updated_at|date:"d.m.Y H:i" }}
-            </small>
-
-            <a href="{% url 'edit_note' note.id %}" 
-               class="inline-block mt-3 bg-blue-600 text-white px-3 py-1 rounded-lg shadow hover:bg-blue-700 transition">
-               Bearbeiten
-            </a>
-        </div>
-    {% empty %}
-        <p>Keine Notizen vorhanden.</p>
-    {% endfor %}
+<!-- Grid -->
+<div id="notes-grid" class="grid grid-cols-3 gap-4">
+  {% for note in notes %}
+    {% include "notes/_note_card.html" %}
+  {% empty %}
+    <div class="col-span-3 text-center text-gray-400">
+      Keine Notizen vorhanden.
+    </div>
+  {% endfor %}
 </div>
 {% endblock %}

@@ -1,0 +1,29 @@
+<form hx-post="{% url 'update_note_partial' note.id %}"
+      hx-target="#note-{{ note.id }}" hx-swap="outerHTML"
+      onsubmit="$root.closest('[x-data]').__x.$data.open=false"
+      class="space-y-4">
+  {% csrf_token %}
+  <div>
+    <label class="block mb-1 font-semibold">Titel</label>
+    <input type="text" name="title" value="{{ note.title }}"
+           class="w-full p-2 rounded bg-gray-800 border border-white/10">
+  </div>
+
+  <div>
+    <label class="block mb-1 font-semibold">Inhalt</label>
+    <textarea name="content" rows="6"
+              class="w-full p-2 rounded bg-gray-800 border border-white/10">{{ note.content }}</textarea>
+  </div>
+
+  <div>
+    <label class="block mb-1 font-semibold">Deadline</label>
+    <input type="date" name="deadline" value="{{ note.deadline|date:'Y-m-d' }}"
+           class="w-full p-2 rounded bg-gray-800 border border-white/10">
+  </div>
+
+  <div class="flex justify-end gap-2">
+    <button type="button" class="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600"
+            @click="$root.closest('[x-data]').__x.$data.open=false">Abbrechen</button>
+    <button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500">Speichern</button>
+  </div>
+</form>

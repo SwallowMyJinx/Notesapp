@@ -1,0 +1,8 @@
+<button
+  class="px-3 py-1.5 rounded-lg bg-black/70 text-white hover:bg-black transition"
+  @click="$root.querySelector('[x-data]').__x.$data.open=true"
+  hx-get="{% url 'edit_note_partial' note.id %}"
+  hx-target="#modal-body"
+  hx-swap="innerHTML">
+  ✏️ Bearbeiten
+</button>
