@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Meine Notizen{% endblock %}
+{% block content %}
+<div class="grid grid-cols-3 gap-4">
+    {% for note in notes %}
+        <div class="p-4 rounded-xl shadow bg-yellow-400 text-black">
+            <h2 class="font-bold text-lg">{{ note.title }}</h2>
+            <p class="mt-2">{{ note.content }}</p>
+
+            {% if note.deadline %}
+                <p class="mt-2 font-semibold text-red-700">
+                    Deadline: {{ note.deadline|date:"d.m.Y" }}
+                </p>
+            {% endif %}
+
+            <small class="block mt-2 text-xs">
+                Geändert: {{ note.updated_at|date:"d.m.Y H:i" }}
+            </small>
+
+            <a href="{% url 'edit_note' note.id %}" 
+               class="inline-block mt-3 bg-blue-600 text-white px-3 py-1 rounded-lg shadow hover:bg-blue-700 transition">
+               Bearbeiten
+            </a>
+        </div>
+    {% empty %}
+        <p>Keine Notizen vorhanden.</p>
+    {% endfor %}
+</div>
+{% endblock %}
