@@ -19,7 +19,7 @@
 </div>
 
 <!-- Notizen-Grid -->
-<div class="grid grid-cols-3 gap-4">
+<div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
   {% for note in notes %}
     <div class="
       p-4 rounded-xl shadow text-black flex flex-col justify-between
@@ -28,19 +28,34 @@
       {% elif note.color == 'pink' %}bg-pink-400{% elif note.color == 'gray' %}bg-gray-400
       {% elif note.color == 'red' %}bg-red-400{% elif note.color == 'orange' %}bg-orange-400
       {% else %}bg-yellow-400{% endif %}
+      {{ note.deadline_border_class }}
     ">
-      <div>
-        <h2 class="font-bold text-lg">{{ note.title }}</h2>
-        <p class="mt-2">{{ note.content }}</p>
+      <div class="flex items-start justify-between gap-3">
+        <h2 class="font-bold text-lg">{{ note.title|default:"(ohne Titel)" }}</h2>
 
         {% if note.deadline %}
-          <p class="mt-2 font-semibold text-red-700">
-            🗓️ Deadline: {{ note.deadline|date:"d.m.Y" }}
-          </p>
+          <!-- Deadline-Chip -->
+          <span class="{% if note.deadline_chip_class %}{{ note.deadline_chip_class }}{% else %}inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border bg-gray-100 border-gray-300 text-gray-800{% endif %}">
+            ⏰ {{ note.deadline|date:"d.m.Y" }}
+            {% if note.deadline_text %}
+              <span class="opacity-80">· {{ note.deadline_text }}</span>
+            {% else %}
+              {# Fallback, wenn View-Helper noch nicht aktiv ist #}
+              {% if note.deadline < today %}
+                <span class="opacity-80">· Überfällig</span>
+              {% elif note.deadline == today %}
+                <span class="opacity-80">· Heute</span>
+              {% else %}
+                <span class="opacity-80">· Ok</span>
+              {% endif %}
+            {% endif %}
+          </span>
         {% endif %}
-
-        <small class="block mt-2 text-xs">Geändert: {{ note.updated_at|date:"d.m.Y H:i" }}</small>
       </div>
+
+      <p class="mt-2">{{ note.content }}</p>
+
+      <small class="block mt-2 text-xs">Geändert: {{ note.updated_at|date:"d.m.Y H:i" }}</small>
 
       <div class="mt-3 flex items-center gap-2">
         <a href="{% url 'edit_note' note.id %}"
@@ -60,7 +75,6 @@
           🎨 Farbe
         </button>
 
-        <!-- Bedeutung der Farbe -->
         {% if note.label_text %}
           <span class="ml-auto px-2 py-1 rounded-full bg-black/20 text-xs font-medium">
             {{ note.label_text }}

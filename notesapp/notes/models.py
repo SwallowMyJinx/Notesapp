@@ -7,7 +7,6 @@ class Note(models.Model):
     content = models.TextField()
     deadline = models.DateField(null=True, blank=True)
     color = models.CharField(max_length=20, default="yellow")
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -17,7 +16,7 @@ class Note(models.Model):
 
 class ColorLabel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    color = models.CharField(max_length=20)  # z. B. "blue"
+    color = models.CharField(max_length=20)  
     label = models.CharField(max_length=50, blank=True, default="")
 
     class Meta:

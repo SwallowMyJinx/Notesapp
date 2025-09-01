@@ -1,5 +1,0 @@
-pip install django 
-django-admin startproject projectname
-cd appname
-python manage.py startapp appname
-python manage.py create superuser
